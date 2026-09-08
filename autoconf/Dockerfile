@@ -3,9 +3,9 @@ FROM docker.io/library/ubuntu:24.04
 ARG AUTOCONF_VERSION="2.72"
 ARG AUTOCONF_ARCHIVE_VERSION="2023.02.20"
 ARG AUTOMAKE_VERSION="1.16.5"
-# Specific revision of https://git.savannah.gnu.org/git/config.git
-# for config.guess and config.sub.
-ARG CONFIG_GIT_REV="00b15927496058d23e6258a28d8996f87cf1f191"
+# config.guess and config.sub are vendored from revision
+# 00b15927496058d23e6258a28d8996f87cf1f191 of
+# https://git.savannah.gnu.org/git/config.git.
 
 LABEL org.opencontainers.image.source="https://github.com/python/cpython-devcontainers"
 LABEL org.opencontainers.image.base.name="docker.io/library/ubuntu:24.04"
@@ -46,10 +46,8 @@ RUN PATCH_VERBOSE=1 curl https://ftp.gnu.org/gnu/autoconf-archive/autoconf-archi
     && ./configure --prefix=/usr/local \
     && make \
     && make install
-ADD --chmod=755 https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=${CONFIG_GIT_REV} \
-    /usr/local/share/autoconf/build-aux/config.guess
-ADD --chmod=755 https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=${CONFIG_GIT_REV} \
-    /usr/local/share/autoconf/build-aux/config.sub
+COPY --chmod=755 config.guess /usr/local/share/autoconf/build-aux/config.guess
+COPY --chmod=755 config.sub /usr/local/share/autoconf/build-aux/config.sub
 COPY config.sub.patch .
 RUN p=$(pwd)/config.sub.patch \
     && cd /usr/local/share/autoconf/build-aux \
