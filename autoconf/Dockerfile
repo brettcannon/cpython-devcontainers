@@ -46,10 +46,18 @@ RUN PATCH_VERBOSE=1 curl https://ftp.gnu.org/gnu/autoconf-archive/autoconf-archi
     && ./configure --prefix=/usr/local \
     && make \
     && make install
-ADD --chmod=755 https://git.savannah.gnu.org/cgit/config.git/plain/config.guess?id=${CONFIG_GIT_REV} \
-    /usr/local/share/autoconf/build-aux/config.guess
-ADD --chmod=755 https://git.savannah.gnu.org/cgit/config.git/plain/config.sub?id=${CONFIG_GIT_REV} \
-    /usr/local/share/autoconf/build-aux/config.sub
+RUN tmp=$(mktemp -d) \
+    && git -C "$tmp" init \
+    && git -C "$tmp" remote add origin https://git.savannah.gnu.org/git/config.git \
+    && for attempt in {1..5}; do \
+        git -C "$tmp" fetch --depth=1 origin "$CONFIG_GIT_REV" && break; \
+        if [[ "$attempt" == 5 ]]; then exit 1; fi; \
+        sleep $((attempt * 5)); \
+    done \
+    && git -C "$tmp" checkout FETCH_HEAD -- config.guess config.sub \
+    && install -m 755 "$tmp/config.guess" /usr/local/share/autoconf/build-aux/config.guess \
+    && install -m 755 "$tmp/config.sub" /usr/local/share/autoconf/build-aux/config.sub \
+    && rm -rf "$tmp"
 COPY config.sub.patch .
 RUN p=$(pwd)/config.sub.patch \
     && cd /usr/local/share/autoconf/build-aux \
